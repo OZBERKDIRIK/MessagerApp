@@ -1,9 +1,11 @@
 package org.example;
 
 import com.google.gson.*;
+import com.google.gson.reflect.TypeToken;
 
 import java.io.BufferedReader;
 import java.io.PrintWriter;
+import java.lang.reflect.Type;
 import java.net.Socket;
 import java.io.*;
 import java.nio.file.Files;
@@ -19,7 +21,6 @@ class ClientHandler extends FileOperation implements Runnable {
 
     private Message message = new Message();
     private Gson gson = new GsonBuilder().setPrettyPrinting().create();
-
     public ClientHandler(Socket socket) {
         this.socket = socket;
     }
@@ -42,16 +43,16 @@ class ClientHandler extends FileOperation implements Runnable {
                     case "SEND":
                         handleSend(tokens);
                         break;
-                    case "LIST":
-                        handleList();
+                    case "LIST", "LİST":
+                        handleList(tokens);
                         break;
                     case "READ":
                         handleRead(tokens);
                         break;
-                    case "QUIT":
+                    case "QUIT", "QUİT":
                         handleQuit();
                         break;
-                    case "REGISTER":
+                    case "REGISTER","REGİSTER":
                         handleRegister(tokens);
                         break;
                     default:
@@ -93,50 +94,68 @@ class ClientHandler extends FileOperation implements Runnable {
         }
         String messageID = tokens[1];
         String id = "";
+        Boolean bln=false;
         List<JsonObject> jsonMessage = readMessage();
         for (JsonObject json : jsonMessage) {
-            id = (json.get("Mesaj ID : ").toString().replace("\\", "").replace("\"", ""));
-            if (messageID.equals(id)) {
-                out.println(json);
+            MessageLıst msg = gson.fromJson(json,MessageLıst.class);
+
+            if (messageID.equals(msg.getMessageId())) {
+                out.println(msg.readMessage());
+                bln=true;
                 break;
-            }else{
-                out.println("MESAJ BULUNAMADI");
             }
+        }
+        if(bln==false){
+            out.println("MESAJ BULUNAMADI");
         }
     }
 
     /**
+     * token olarak list komutunun yanında  ||||| gönderilenler ||||| gelenler parametresi alır
      * Mesajları listelemeye yarar
      * Her kullanıcı giriş yaptığında onun için bir userID oluşturulur.
      * Bu userID ile birlikte o anda giriş yapmış kişinin gönderen ya da gönderici olduğu tespit edilir.
      * Mesajlar klasörün altında username ile oluşturulmuş klasör altında Gelen.txt ve Gönderilen.txt olarak yazılır.
      * @throws IOException
      */
-    private void handleList() throws IOException {
-        String reciveJSON = "";
-        String sendJSON = "";
+    private void handleList(String[] tokens) throws IOException {
+        MessageLıst msg = new MessageLıst();
+        List<String> sendMessage = new ArrayList<>();
+        List<String> receiveMessage = new ArrayList<>();
+        String type="";
+        String reciveID ="";
+        String senderID="";
+        try {
+             type = tokens[1];
+        }catch (Exception e){
+            out.println(e.getMessage());
+        }
         if (!person.getAuthenticatedUser().isEmpty() && allMessage.exists()) {
             List<JsonObject> jsonMessage = readMessage();
             for (JsonObject json : jsonMessage) {
-                String reciveID = json.get("Alıcı : ").toString().replace("\"", "").substring(0, 3) + setUsers().get(json.get("Alıcı : ").toString().replace("\"", "")).substring(0, 3);
-                String senderID = json.get("Gönderen : ").toString().replace("\"", "").substring(0, 3) + setUsers().get(json.get("Gönderen : ").toString().replace("\"", "")).substring(0, 3);
-                System.out.println("Recive ID : " + reciveID);
-                System.out.println("Sender ID : " + senderID);
+
+                 msg = gson.fromJson(json,MessageLıst.class);
+
+                reciveID=msg.getReceiver().substring(0,3)+setUsers().get(msg.getReceiver()).substring(0,3);
+                senderID=msg.getSender().substring(0,3)+setUsers().get(msg.getSender()).substring(0,3);
+                System.out.println("Recive ID : " + msg.getReceiver().substring(0,3)+setUsers().get(msg.getReceiver()).substring(0,3));
+                System.out.println("Sender ID : " + msg.getReceiver().substring(0,3)+setUsers().get(msg.getReceiver()).substring(0,3));
                 System.out.println(person.getUserID().contains(reciveID));
                 if (person.getUserID().contains(senderID)) {
-                    message.sendLıst.add("Mesaj ID : " + json.get("Mesaj ID : "));
-                    message.sendLıst.add("Gönderen : " + json.get("Gönderen : "));
-                    message.sendLıst.add("Alıcı : " + json.get("Alıcı : "));
-                    message.sendLıst.add("Konu : " + json.get("Konu : "));
-                    sendJSON = gson.toJson(message.sendLıst);
+                   sendMessage.add(msg.toString());
                 }
-
                 if (person.getUserID().contains(reciveID)) {
-                    message.reciveLıst.add("Mesaj ID : " + json.get("Mesaj ID : ").toString());
-                    message.reciveLıst.add("Gönderen : " + json.get("Gönderen : ").toString());
-                    message.reciveLıst.add("Alıcı : " + json.get("Alıcı : ").toString());
-                    message.reciveLıst.add("Konu : " + json.get("Konu : ").toString());
-                    reciveJSON = gson.toJson(message.reciveLıst);
+                   receiveMessage.add(msg.toString());
+                }
+            }
+            if(type.equals("gönderilenler")){
+                out.println("GÖNDERİLENLER KUTUSU -----> \n" + sendMessage.toString());
+            }
+            else if(type.equals("gelenler")){
+                out.println("GELENLER KUTUSU -------> \n" + receiveMessage.toString());
+            }else{
+                {
+                    out.println("LİST KOMUTU DOGRU GİRİLMEDİ");
                 }
             }
             send = new File(userMessage, "Gönderilen.txt");
@@ -146,16 +165,16 @@ class ClientHandler extends FileOperation implements Runnable {
             if (userMessage.exists()) {
                 try (BufferedWriter bf = new BufferedWriter(new FileWriter(send))) {
                     send.mkdirs();
-                    bf.write(sendJSON);
+                    bf.write(msg.toString());
                 } catch (IOException e) {
-                    System.out.println(e.getMessage());
+                    System.out.println("Gönderilenler Klasörü Oluşturulmadı ");
                 }
                 try (BufferedWriter bfReciver = new BufferedWriter(new FileWriter(receive))) {
                     receive.mkdirs();
-                    bfReciver.write(reciveJSON);
+                    bfReciver.write(msg.toString());
+                }catch (IOException e) {
+                    System.out.println("Gelenler Klasörü Oluşturulmadı ");
                 }
-                out.println("GELENLER ---> \n" + reciveJSON.toString());
-                out.println("GÖNDERİLENLER ---> \n" + sendJSON.toString());
             } else {
                 out.print("Mesaj Klasörü Bulunamadı ");
             }

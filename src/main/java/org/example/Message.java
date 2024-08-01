@@ -1,27 +1,29 @@
 package org.example;
 
+import com.google.gson.annotations.Expose;
+
 import java.io.Serializable;
 import java.util.*;
 
 public class Message implements Serializable {
 
     private static final long serialVersionUID = 1L;
+    @Expose
     String sender;
 
+    @Expose
     String reciever;
 
+    @Expose
     String subtopic;
 
     String content;
 
+    @Expose
     String messageId;
+
+    @Expose
     List<String> messageID = new ArrayList<>();
-    List<String> sendLıst = new ArrayList<>();
-    List<String> reciveLıst = new ArrayList<>();
-
-
-    private static List<Message> messageList = Collections.synchronizedList(new ArrayList<>());
-
 
     private String generateUniqueID() {
         String id = UUID.randomUUID().toString();

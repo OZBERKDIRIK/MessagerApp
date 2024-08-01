@@ -29,17 +29,14 @@ public class SimpleMessageClient {
                         break;
                     }
                 }
-
                 if (userInput.equals("QUIT") || userInput.equals("quıt")) {
                     break;
                 }
             }
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (IOException ex) {
+            System.out.println("Bağnatı Hatası ");
         }
     }
-
 }
-
 
 
