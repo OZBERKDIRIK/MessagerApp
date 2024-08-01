@@ -165,13 +165,13 @@ class ClientHandler extends FileOperation implements Runnable {
             if (userMessage.exists()) {
                 try (BufferedWriter bf = new BufferedWriter(new FileWriter(send))) {
                     send.mkdirs();
-                    bf.write(msg.toString());
+                    bf.write(sendMessage.toString());
                 } catch (IOException e) {
                     System.out.println("Gönderilenler Klasörü Oluşturulmadı ");
                 }
                 try (BufferedWriter bfReciver = new BufferedWriter(new FileWriter(receive))) {
                     receive.mkdirs();
-                    bfReciver.write(msg.toString());
+                    bfReciver.write(receiveMessage.toString());
                 }catch (IOException e) {
                     System.out.println("Gelenler Klasörü Oluşturulmadı ");
                 }
